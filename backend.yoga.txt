@@ -1,0 +1,36 @@
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///yoga_classes.db'  # SQLite database for simplicity
+db = SQLAlchemy(app)
+
+class YogaClass(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    age = db.Column(db.Integer, nullable=False)
+    selectedBatch = db.Column(db.String(10), nullable=False)
+
+@app.route('/submitForm', methods=['POST'])
+def submit_form():
+    try:
+        data = request.json
+        name, age, selected_batch = data['name'], data['age'], data['selectedBatch']
+
+        # Validate age within the range of 18-65
+        if age < 18 or age > 65:
+            return jsonify({'error': 'Age must be between 18 and 65.'}), 400
+
+        # Save form data to the database
+        new_yoga_class = YogaClass(name=name, age=age, selectedBatch=selected_batch)
+        db.session.add(new_yoga_class)
+        db.session.commit()
+
+        return jsonify({'message': 'Form submitted successfully.'}), 200
+    except Exception as e:
+        print(e)
+        return jsonify({'error': 'Internal server error.'}), 500
+
+if __name__ == '__main__':
+    db.create_all()
+    app.run(debug=True)
